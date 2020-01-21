@@ -59,10 +59,10 @@ class PersistenceHelper {
   // DRY - don't repeat yourself
   
   // create - save item to documents directory
-  public func create(event: ImageObject) throws {
+  public func create(item: ImageObject) throws {
     // step 2.
     // append new event to the events array
-    events.append(event)
+    events.append(item)
     
     do {
       try save()

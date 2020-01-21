@@ -7,12 +7,18 @@
 //
 
 import UIKit
+import AVFoundation // we want to use AVMakeRect() to maintain image aspect ratio
 
 class ImagesViewController: UIViewController {
     
     @IBOutlet weak var collectionView: UICollectionView!
+    
     private var imageObjects = [ImageObject]()
+    
     private let imagePickerController = UIImagePickerController()
+    
+    private let dataPersistence = PersistenceHelper(filename: "images.plist")
+    
     private var selectedImage: UIImage?{
         didSet{
             appendNewPhotoToCollection()
@@ -25,6 +31,14 @@ class ImagesViewController: UIViewController {
         collectionView.delegate = self
         // set UIImagePickerController delegate as this view controller
         imagePickerController.delegate = self
+        loadImageObjects()
+    }
+    private func loadImageObjects() {
+        do{
+            imageObjects = try dataPersistence.loadEvents()
+        } catch {
+            print("Loading objects error: \(error)")
+        }
     }
     
     private func appendNewPhotoToCollection(){
@@ -35,8 +49,24 @@ class ImagesViewController: UIViewController {
                 return
         }
         
+        print("Original image size is \(image.size)")
+        
+        // the size for resizing of the image
+        let size = UIScreen.main.bounds.size
+        
+        // we will maintain the aspect ratio of the image
+        let rect = AVMakeRect(aspectRatio: image.size, insideRect: CGRect(origin: CGPoint.zero, size: size))
+        
+        // resize image
+        let resizedImage = image.resizeImage(to: rect.size.width, height: rect.size.height)
+        print("resized image is now \(resizedImage.size)")
+        
+        guard let resizedImageData = resizedImage.jpegData(compressionQuality: 1.0) else {
+            return
+        }
+        
         // create an ImageObject using the image selected
-        let imageObject = ImageObject(imageData: imageData, date: Date())
+        let imageObject = ImageObject(imageData: resizedImageData, date: Date())
         // insert new imageObject into imageObjects
         imageObjects.insert(imageObject, at: 0)
         
@@ -45,6 +75,13 @@ class ImagesViewController: UIViewController {
         
         // insert new cell into collection view
         collectionView.insertItems(at: [indexPath])
+        
+        // persist imageObject to documents directory
+        do{
+        try? dataPersistence.create(item: imageObject)
+        } catch {
+            print("saving error: \(error)")
+        }
     }
     
     
@@ -90,10 +127,14 @@ extension ImagesViewController: UICollectionViewDataSource {
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        // step 4 - creating custom delegation - must have an instance of object B
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "imageCell", for: indexPath) as? ImageCell else {
             fatalError("could not downcast to an ImageCell")
         }
         let imageObject = imageObjects[indexPath.row]
+        // step 5: creating delegation - set delegate object
+        // similar to tableVIew.delegate = self
+        cell.delegate = self
         cell.configureCell(imageObject: imageObject)
         return cell
     }
@@ -123,15 +164,12 @@ extension ImagesViewController: UIImagePickerControllerDelegate, UINavigationCon
     }
 }
 
-//    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info:[UIImagePickerController.InfoKey : Any]) {
-//        // we need to acess the UIIMagePickerController.InfoKey.originalImage key to get the UIIMage that was selected
-//        guard let image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage else {
-//            print("image selection failed")
-//            return
-//        }
-//        selectedImage = image
-//        dismiss(animated: true)
-//    }
+// step 6: creating custom delegation - conform to delegate
+extension ImagesViewController: ImageCellDelegate{
+    func didLongPress(_ imageCell: ImageCell){
+        print("cell was selected")
+    }
+}
 
 
 // more here: https://nshipster.com/image-resizing/
