@@ -6,6 +6,25 @@
 //  Copyright © 2020 Alex Paul. All rights reserved.
 //
 
+/*
+ 
+ * Used UIAlertController to present and action sheet
+ * Access the user's photo library
+ * Access the user's camera
+ * Add the NSCameraUsageDescription key to the info.plist
+ * Resized a UIIMage using UIGraphicsImageRenderer
+ * Implemeneted UILongPressGestureRecogniser() to present an action sheet for deletion
+ * Maintained the aspect ratio of the image using AVMakeRect (AVFoundation framework)
+ * Create a custom delegate to notify the IMagesViewController about long presses from the IMageCell
+ * Persisted image objects to the docuyments directory (create, read. delete)
+ 
+ Other features we can add
+ * Share an image along with text to a user via SMS, Facebook, ......
+ * Automatically save original image taken to the photo library UIImageWriteToPhotosAlbum
+ 
+ */
+
+
 import UIKit
 import AVFoundation // we want to use AVMakeRect() to maintain image aspect ratio
 
@@ -78,11 +97,12 @@ class ImagesViewController: UIViewController {
         
         // persist imageObject to documents directory
         do{
-        try? dataPersistence.create(item: imageObject)
+            try? dataPersistence.create(item: imageObject)
         } catch {
             print("saving error: \(error)")
         }
     }
+    
     
     
     @IBAction func addPictureButtonPressed(_ sender: UIBarButtonItem) {
@@ -168,20 +188,46 @@ extension ImagesViewController: UIImagePickerControllerDelegate, UINavigationCon
 extension ImagesViewController: ImageCellDelegate{
     func didLongPress(_ imageCell: ImageCell){
         print("cell was selected")
+        
+        guard let indexPath = collectionView.indexPath(for: imageCell) else{
+            return
+        }
+        
+        // present an action sheet
+        
+        // actions: delete, cancel
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { [weak self] alertAction in
+        }
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        alertController.addAction(deleteAction)
+        alertController.addAction(cancelAction)
+        present(alertController, animated: true)
     }
-}
-
-
-// more here: https://nshipster.com/image-resizing/
-// MARK: - UIImage extension
-extension UIImage {
-    func resizeImage(to width: CGFloat, height: CGFloat) -> UIImage {
-        let size = CGSize(width: width, height: height)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { (context) in
-            self.draw(in: CGRect(origin: .zero, size: size))
+    private func deleteImageObject(indexPath: IndexPath) {
+        // delete image object from documents directory
+        do{
+            try dataPersistence.delete(event: indexPath.row)
+            // delete imageObject from imageObjects
+            imageObjects.remove(at: indexPath.row)
+            
+            // delete cell from collection view
+            collectionView.deleteItems(at: [indexPath])
+        } catch {
+            print("error deleting item: \(error)")
         }
     }
 }
-
-
+    
+    // more here: https://nshipster.com/image-resizing/
+    // MARK: - UIImage extension
+    extension UIImage {
+        func resizeImage(to width: CGFloat, height: CGFloat) -> UIImage {
+            let size = CGSize(width: width, height: height)
+            let renderer = UIGraphicsImageRenderer(size: size)
+            return renderer.image { (context) in
+                self.draw(in: CGRect(origin: .zero, size: size))
+            }
+        }
+    }
+    
