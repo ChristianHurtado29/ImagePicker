@@ -198,9 +198,14 @@ extension ImagesViewController: ImageCellDelegate{
         // actions: delete, cancel
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { [weak self] alertAction in
+            self?.deleteImageObject(indexPath: indexPath)
         }
+        let editAction = UIAlertAction(title: "Edit", style: .default)
+        let shareAction = UIAlertAction(title: "Share", style: .default)
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
         alertController.addAction(deleteAction)
+        alertController.addAction(editAction)
+        alertController.addAction(shareAction)
         alertController.addAction(cancelAction)
         present(alertController, animated: true)
     }
@@ -218,16 +223,15 @@ extension ImagesViewController: ImageCellDelegate{
         }
     }
 }
-    
-    // more here: https://nshipster.com/image-resizing/
-    // MARK: - UIImage extension
-    extension UIImage {
-        func resizeImage(to width: CGFloat, height: CGFloat) -> UIImage {
-            let size = CGSize(width: width, height: height)
-            let renderer = UIGraphicsImageRenderer(size: size)
-            return renderer.image { (context) in
-                self.draw(in: CGRect(origin: .zero, size: size))
-            }
+
+// more here: https://nshipster.com/image-resizing/
+// MARK: - UIImage extension
+extension UIImage {
+    func resizeImage(to width: CGFloat, height: CGFloat) -> UIImage {
+        let size = CGSize(width: width, height: height)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { (context) in
+            self.draw(in: CGRect(origin: .zero, size: size))
         }
     }
-    
+}
